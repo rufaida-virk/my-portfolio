@@ -1,0 +1,106 @@
+﻿@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-x: hidden !important;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  body {
+    overflow-x: hidden !important;
+    max-width: 100%;
+    width: 100%;
+    position: relative;
+    background-color: #F6EEDD;
+    color: #3E2A1F;
+    background-image: 
+      radial-gradient(rgba(200, 102, 63, 0.035) 1px, transparent 0),
+      radial-gradient(rgba(138, 154, 91, 0.035) 1px, transparent 0);
+    background-size: 28px 28px;
+    background-position: 0 0, 14px 14px;
+  }
+
+  .dark body, body.dark {
+    background-color: #2B1D16;
+    color: #F6EEDD;
+    background-image: 
+      radial-gradient(rgba(235, 221, 195, 0.04) 1px, transparent 0),
+      radial-gradient(rgba(200, 102, 63, 0.04) 1px, transparent 0);
+  }
+}
+
+/* Custom Boho Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F6EEDD;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #2B1D16;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C8663F;
+  border-radius: 9999px;
+  border: 2px solid #F6EEDD;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #ad532f;
+  border: 2px solid #2B1D16;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #ad532f;
+}
+
+/* Arch Frame */
+.arch-frame {
+  border-radius: 170px 170px 24px 24px;
+}
+
+/* Gentle Floating Animation */
+@keyframes bohoFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(2deg);
+  }
+}
+
+.animate-boho-float {
+  animation: bohoFloat 6s ease-in-out infinite;
+}
+
+.animate-boho-float-slow {
+  animation: bohoFloat 9s ease-in-out infinite;
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
