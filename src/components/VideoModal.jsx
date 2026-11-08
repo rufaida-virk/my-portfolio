@@ -1,11 +1,21 @@
-﻿import React, { useEffect } from 'react';
-import { X, Play } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
+import { X, Play, VolumeX } from 'lucide-react';
 
 export const VideoModal = ({ isOpen, onClose, videoUrl, title, poster }) => {
+  const videoRef = useRef(null);
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
         onClose();
+      }
+      // Block any volume increment / un-mute hotkeys while video modal is active
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'm' || e.key === 'M') {
+        e.preventDefault();
+        if (videoRef.current) {
+          videoRef.current.muted = true;
+          videoRef.current.volume = 0;
+        }
       }
     };
 
@@ -21,6 +31,45 @@ export const VideoModal = ({ isOpen, onClose, videoUrl, title, poster }) => {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, onClose]);
+
+  // Strict silence enforcer - guarantees 0 volume and muted state under all circumstances
+  const enforceSilence = (el) => {
+    if (!el) return;
+    el.muted = true;
+    el.defaultMuted = true;
+    el.volume = 0;
+  };
+
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+
+    enforceSilence(el);
+
+    // Actively intercept any attempt by browser/user to change volume or unmute
+    const onVolChange = () => enforceSilence(el);
+    el.addEventListener('volumechange', onVolChange);
+
+    // Web Audio API hard disconnect: intercepts audio track into a dead-end gain node (gain=0)
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx && !el._audioSilenced) {
+        const ctx = new AudioCtx();
+        const src = ctx.createMediaElementSource(el);
+        const gain = ctx.createGain();
+        gain.gain.value = 0;
+        src.connect(gain);
+        // gain is never connected to ctx.destination, completely nullifying audio output
+        el._audioSilenced = true;
+      }
+    } catch {
+      // AudioContext already attached or restricted; DOM enforcement guarantees silence
+    }
+
+    return () => {
+      el.removeEventListener('volumechange', onVolChange);
+    };
+  }, [videoUrl, isOpen]);
 
   if (!isOpen) return null;
 
@@ -55,13 +104,26 @@ export const VideoModal = ({ isOpen, onClose, videoUrl, title, poster }) => {
         {/* Video Player */}
         <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
           <video
+            ref={videoRef}
+            key={videoUrl}
             src={videoUrl}
             poster={poster}
             controls
             muted
+            defaultMuted
             playsInline
             preload="metadata"
-            className="w-full h-full object-contain"
+            onVolumeChange={(e) => enforceSilence(e.currentTarget)}
+            onPlay={(e) => enforceSilence(e.currentTarget)}
+            onPlaying={(e) => enforceSilence(e.currentTarget)}
+            onTimeUpdate={(e) => {
+              if (!e.currentTarget.muted || e.currentTarget.volume > 0) {
+                enforceSilence(e.currentTarget);
+              }
+            }}
+            onLoadedMetadata={(e) => enforceSilence(e.currentTarget)}
+            onLoadedData={(e) => enforceSilence(e.currentTarget)}
+            className="w-full h-full object-contain silent-video"
           >
             Your browser does not support the video tag.
           </video>
@@ -69,7 +131,10 @@ export const VideoModal = ({ isOpen, onClose, videoUrl, title, poster }) => {
 
         {/* Modal Footer Note */}
         <div className="px-4 sm:px-6 py-2.5 sm:py-3 bg-boho-sand/30 dark:bg-boho-dark-card text-[11px] sm:text-xs text-boho-brown/75 dark:text-boho-cream/75 flex justify-between items-center">
-          <span>Screen Recording Walkthrough</span>
+          <span className="flex items-center space-x-1.5">
+            <VolumeX className="w-3.5 h-3.5 text-boho-terracotta flex-shrink-0" />
+            <span>Silent Walkthrough (Audio Completely Disabled)</span>
+          </span>
           <span className="hidden sm:inline">Click outside or press ESC to close</span>
         </div>
       </div>

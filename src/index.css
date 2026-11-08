@@ -1,4 +1,4 @@
-﻿@tailwind base;
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -103,4 +103,16 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Completely hide volume and audio controls from silent video players */
+.silent-video::-webkit-media-controls-volume-control-container,
+.silent-video::-webkit-media-controls-mute-button,
+.silent-video::-webkit-media-controls-volume-slider,
+.silent-video::-webkit-media-controls-volume-slider-container {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }

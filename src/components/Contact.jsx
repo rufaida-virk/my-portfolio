@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { portfolioData } from '../data/portfolioData';
 import { BotanicalLeaf, WavySectionDivider } from './BohoDecorations';
 import { Mail, Phone, MapPin, Send, CheckCircle2, Linkedin, Github, MessageCircle } from 'lucide-react';
@@ -13,19 +13,49 @@ export const Contact = () => {
     if (status.error) setStatus({ ...status, error: '' });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim() || !formData.email.trim() || !formData.message.trim()) {
-      setStatus({ ...status, error: 'Please fill in all fields before sending.' });
+      setStatus({ submitted: false, loading: false, error: 'Please fill in all fields before sending.' });
       return;
     }
 
-    setStatus({ ...status, loading: true });
+    setStatus({ submitted: false, loading: true, error: '' });
 
-    setTimeout(() => {
-      setStatus({ submitted: true, loading: false, error: '' });
-      setFormData({ name: '', email: '', message: '' });
-    }, 800);
+    try {
+      const response = await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(social.email)}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          message: formData.message.trim(),
+          _subject: `Portfolio Message from ${formData.name.trim()}`,
+          _template: 'table',
+          _captcha: 'false',
+        }),
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (response.ok) {
+        setStatus({ submitted: true, loading: false, error: '' });
+        setFormData({ name: '', email: '', message: '' });
+      } else {
+        const errorMsg = data && data.message ? data.message : 'Could not deliver message automatically. Please click below to send directly via email.';
+        setStatus({ submitted: false, loading: false, error: errorMsg });
+      }
+    } catch (err) {
+      console.error('Contact form submission error:', err);
+      setStatus({
+        submitted: false,
+        loading: false,
+        error: 'Network error. Please click below to send directly via email.',
+      });
+    }
   };
 
   return (
@@ -154,7 +184,7 @@ export const Contact = () => {
                     Thank you! Message Sent.
                   </h4>
                   <p className="font-body text-xs sm:text-sm md:text-base text-boho-brown/80 dark:text-boho-cream/80 max-w-md mx-auto">
-                    Your note has been received. I'll get back to you as soon as possible!
+                    Your note has been delivered to <span className="font-semibold text-boho-terracotta dark:text-boho-rose">{social.email}</span>. I'll get back to you as soon as possible!
                   </p>
                   <button
                     onClick={() => setStatus({ submitted: false, loading: false, error: '' })}
@@ -166,8 +196,15 @@ export const Contact = () => {
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5 w-full">
                   {status.error && (
-                    <div className="p-2.5 sm:p-3 rounded-lg bg-red-100 text-red-800 text-xs font-sans">
-                      {status.error}
+                    <div className="p-3 sm:p-4 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 text-xs font-sans space-y-2">
+                      <p>{status.error}</p>
+                      <a
+                        href={`mailto:${social.email}?subject=${encodeURIComponent('Portfolio Inquiry from ' + (formData.name || 'Visitor'))}&body=${encodeURIComponent(formData.message + (formData.name ? `\n\n- ${formData.name}` : '') + (formData.email ? ` (${formData.email})` : ''))}`}
+                        className="inline-flex items-center space-x-1.5 font-bold underline text-boho-terracotta dark:text-boho-rose hover:opacity-80"
+                      >
+                        <Mail className="w-3.5 h-3.5" />
+                        <span>Click to open in your Email App ({social.email})</span>
+                      </a>
                     </div>
                   )}
 
@@ -222,10 +259,10 @@ export const Contact = () => {
                   <button
                     type="submit"
                     disabled={status.loading}
-                    className="w-full py-3 sm:py-3.5 px-6 rounded-full bg-boho-terracotta text-white font-sans font-medium text-xs sm:text-sm tracking-wide shadow-boho hover:bg-boho-terracotta-dark transition-all flex items-center justify-center space-x-2 disabled:opacity-50 active:scale-95"
+                    className="w-full py-3 sm:py-3.5 px-6 rounded-full bg-boho-terracotta text-white font-sans font-medium text-xs sm:text-sm tracking-wide shadow-boho hover:bg-boho-terracotta-dark transition-all flex items-center justify-center space-x-2 disabled:opacity-50 active:scale-95 cursor-pointer"
                   >
                     {status.loading ? (
-                      <span>Sending note...</span>
+                      <span>Sending note to {social.email}...</span>
                     ) : (
                       <>
                         <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -233,6 +270,16 @@ export const Contact = () => {
                       </>
                     )}
                   </button>
+
+                  <p className="text-center text-[11px] sm:text-xs text-boho-brown/65 dark:text-boho-cream/60 pt-1">
+                    Delivered directly to{' '}
+                    <a
+                      href={`mailto:${social.email}`}
+                      className="underline hover:text-boho-terracotta text-boho-terracotta dark:text-boho-rose font-medium"
+                    >
+                      {social.email}
+                    </a>
+                  </p>
                 </form>
               )}
             </div>
